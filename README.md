@@ -1,4 +1,6 @@
 # BiLevel-Graph-Neural-Networks
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![codebeat badge](https://codebeat.co/badges/37f649df-f59a-4ee2-8595-a8425cb4280e)](https://codebeat.co/projects/github-com-codekgu-bilevel-graph-neural-network-master) 
 
 ## Overview
 This repo contains the code for Bi-Level Graph Neural Networks for Drug-Drug Interaction Prediction.
