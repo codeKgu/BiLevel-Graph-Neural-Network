@@ -18,6 +18,7 @@ We introduce Bi-GNN for modeling biological link prediction tasks such as drug-d
 
 
 ## Usage
+
 ### Environment Setup
 The code is implemented in python 3.6. The libraries used can be seen in the `Dockerfile`.
 To set up the docker environment 
@@ -26,7 +27,7 @@ $ docker build . -t bilevel_gnn
 $ nvidia-docker run -e "HOSTNAME=$(cat /etc/hostname)" -v [path_to_repo]:/workspace -it bilevel_gnn bash
 ```
 There is also an option to use [comet.ml](https://www.comet.ml/) for experiment tracking. 
-###Project Navigation
+### Project Navigation
 * `data`  contains the raw data for the datasets
 * `model` contains pytorch modules for building our model as well as baseline models
 * `src` contains the main source code
@@ -52,5 +53,6 @@ You will also want to set `use_comet_ml` to `True`. For example you can change t
 $ cd src && python main.py
 ```
 
-### Support
+## Support
+
 If you have any questions about the code or algorithm please reach out to <kengu13@ucla.edu>.
