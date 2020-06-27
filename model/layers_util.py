@@ -31,7 +31,10 @@ class MLP(nn.Module):
                 [nn.Linear(self.layer_channels[i], self.layer_channels[i + 1])
                  for i in range(len(self.layer_channels) - 1)])
             ))
-        self.bn = torch.nn.BatchNorm1d(output_dim) if bn else None
+        self.bn = bn
+        if self.bn:
+            self.bn = nn.ModuleList([torch.nn.BatchNorm1d(dim)
+                                     for dim in self.layer_channels[1:-1]])
 
     @staticmethod
     def weight_init(m):
@@ -40,15 +43,17 @@ class MLP(nn.Module):
 
     def forward(self, x):
         layer_inputs = [x]
-        for layer in self.layers:
+        for i, layer in enumerate(self.layers):
             input = layer_inputs[-1]
             if layer == self.layers[-1]:
                 layer_inputs.append(layer(input))
             else:
-                layer_inputs.append(self.activation(layer(input)))
+                if self.bn:
+                    output = self.activation(self.bn[i](layer(input)))
+                else:
+                    output = self.activation(layer(input))
+                layer_inputs.append(output)
         # models.store_layer_output(self, layer_inputs[-1])
-        if self.bn:
-            layer_inputs[-1] = self.bn(layer_inputs[-1])
         return layer_inputs[-1]
 
 

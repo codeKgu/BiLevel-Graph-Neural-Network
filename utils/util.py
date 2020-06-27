@@ -338,7 +338,30 @@ def parse_str_list(strl):
     return strl.split(',')
 
 
-def aggregate_comet_results_from_folds(comet_obj, num_folds, metric_names):
+def get_metric_names(dataset_name, eval_performance_by_degree_bins):
+    metric_names = []
+    if 'drugbank' in dataset_name:
+        metric_names = ['_ROC-AUC', '_PR-AUC']
+        for i in range(len(eval_performance_by_degree_bins) + 1):
+            metric_names.append('degree_bin_{}_num_nodes'.format(i))
+            metric_names.append('degree_bin_{}_pr_auc'.format(i))
+            metric_names.append('degree_bin_{}_roc_auc'.format(i))
+
+    elif 'drugcombo' in dataset_name:
+        metric_names = ['_ROC-AUC', '_ACCURACY', '_F1']
+        for i in range(len(eval_performance_by_degree_bins) + 1):
+            metric_names.append('degree_bin_{}_num_nodes'.format(i))
+            metric_names.append('degree_bin_{}_accuracy'.format(i))
+            metric_names.append('degree_bin_{}_f1'.format(i))
+            metric_names.append('degree_bin_{}_roc_auc'.format(i))
+
+    return metric_names
+
+
+def aggregate_comet_results_from_folds(comet_obj, num_folds, dataset_name,
+                                       eval_performance_by_degree_bins):
+    metric_names = get_metric_names(dataset_name,
+                                    eval_performance_by_degree_bins)
     total_results = {}
     for metric_name in metric_names:
         res_list = []

@@ -161,7 +161,7 @@ def get_graph_pairs(edge_types_edge_list, graphs):
                     final_graphs.add(gid2)
                     graph_pairs[gid_pair] = GraphPair(true_label=1,
                                                       g1=graph1, g2=graph2,
-                                                      edge_types=set(edge_type))
+                                                      edge_types=set([edge_type]))
                 else:
                     graph_pairs[gid_pair].edge_types.add(edge_type)
                 edge_types_edge_list_filtered[edge_type][gid1].add(gid2)

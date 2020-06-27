@@ -6,9 +6,10 @@ from copy import deepcopy
 from os.path import basename
 from time import time
 
+from config import FLAGS, COMET_EXPERIMENT
+
 import torch
 
-from config import FLAGS, COMET_EXPERIMENT
 from load_data import load_pair_tvt_splits,  load_pairs_to_dataset, load_dataset
 from model.model import Model
 from train import train, test, model_forward, _get_initial_embd
@@ -17,14 +18,6 @@ from utils.data.representation_node_feat import encode_node_features
 from utils.saver import Saver
 from utils.util import get_model_info_as_str, convert_long_time_to_str,\
     aggregate_comet_results_from_folds, set_seed
-
-metric_names = []
-if 'drugbank' in FLAGS.dataset:
-    metric_names = ['_ROC-AUC', '_PR-AUC']
-    for i in range(len(FLAGS.eval_performance_by_degree) + 1):
-        metric_names.append('degree_bin_{}_num_nodes'.format(i))
-        metric_names.append('degree_bin_{}_pr_auc'.format(i))
-        metric_names.append('degree_bin_{}_roc_auc'.format(i))
 
 
 def main():
@@ -46,7 +39,7 @@ def main():
         if FLAGS.cross_val and FLAGS.run_only_on_fold != -1 and FLAGS.run_only_on_fold != fold_num:
             continue
 
-        set_seed(FLAGS.random_seed + 2)
+        set_seed(FLAGS.random_seed + 5)
         print(f'======== FOLD {fold_num} ========')
         saver = Saver(fold=fold_num)
         dataset = deepcopy(orig_dataset)
@@ -76,7 +69,7 @@ def main():
         elif FLAGS.higher_level_layers and not FLAGS.lower_level_layers:
             test_data.dataset.init_interaction_graph_embds(device=FLAGS.device)
 
-        if FLAGS.save_final_node_embeddings:
+        if FLAGS.save_final_node_embeddings and 'gmn' not in FLAGS.model:
             with torch.no_grad():
                 trained_model = trained_model.to(FLAGS.device)
                 trained_model.eval()
@@ -88,6 +81,7 @@ def main():
                 else:
                     outs = _get_initial_embd(test_data, trained_model)
                     trained_model.use_layers = 'all'
+
             saver.save_graph_embeddings_mat(outs.cpu().detach().numpy(),
                                             test_data.dataset.id_map,
                                             test_data.dataset.gs_map)
@@ -104,7 +98,8 @@ def main():
     if FLAGS.cross_val and COMET_EXPERIMENT:
         results = aggregate_comet_results_from_folds(COMET_EXPERIMENT,
                                                      FLAGS.num_folds,
-                                                     metric_names)
+                                                     FLAGS.dataset,
+                                                     FLAGS.eval_performance_by_degree)
         COMET_EXPERIMENT.log_metrics(results, prefix='aggr')
 
 

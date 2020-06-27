@@ -26,8 +26,7 @@ DATASET_CONFIG = {
 
 class TorchBiGNNDataset(Dataset):
 
-    def \
-            __init__(self, dataset, num_node_feat, device, num_hyper_edge_feat=0):
+    def __init__(self, dataset, num_node_feat, device, num_hyper_edge_feat=0):
         self.dataset, self.num_node_feat = dataset, num_node_feat
         self.num_hyper_edge_feat = num_hyper_edge_feat
         self.device = device
@@ -397,7 +396,7 @@ class BiGNNDataset(object):
         self._check_gid_type(gid2)
         pair = self.pairs.get((gid1, gid2))
         if pair is None:
-            pair = self.pairs.get((gid2, gid1))  # assume symmetric
+            pair = self.pairs.get((gid2, gid1))
             if not pair:
                 raise ValueError('Cannot find ({},{}) out of {} pairs'.format(
                     gid1, gid2, len(self.pairs)))

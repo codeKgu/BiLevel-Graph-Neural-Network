@@ -3,6 +3,13 @@ from math import isclose
 import importlib
 if importlib.util.find_spec('comet_ml'):
     from comet_ml import Experiment
+import sys
+from os.path import dirname, abspath, join
+
+cur_folder = dirname(abspath(__file__))
+sys.path.insert(0, join(dirname(cur_folder), 'src'))
+sys.path.insert(0, dirname(cur_folder))
+
 
 import torch
 
@@ -11,20 +18,21 @@ from utils.util import C, get_user, get_host
 
 
 parser = argparse.ArgumentParser()
-COMET_ML_APP_KEY = 'XR1bHdikUQC1zRRwtNaQP2huV'
-COMET_PROJECT_NAME = 'bignn-cross-val'
+COMET_ML_API_KEY = ''  # YOUR_COMET_API_KEY
+COMET_PROJECT_NAME = ''  # YOUR_COMET_PROJECT_NAME
 """
 Most Relevant
 """
 
-debug = True
-gpu = 3 if 'ken' not in get_user() else -1
-use_comet_ml = True if importlib.util.find_spec('comet_ml') and not debug else False
+debug = False
+gpu = 1  # -1 if use cpu
+use_comet_ml = False if importlib.util.find_spec('comet_ml') and not debug else False
 
 parser.add_argument('--use_comet_ml', default=use_comet_ml)
+parser.add_argument('--debug', default=debug)
 
 if use_comet_ml:
-    parser.add_argument('--comet_api_key', default=COMET_ML_APP_KEY)
+    parser.add_argument('--comet_api_key', default=COMET_ML_API_KEY)
 
 """
 Data.
@@ -77,11 +85,11 @@ parser.add_argument('--different_edge_type_aggr', default=different_edge_type_ag
 Model. Pt1
 """
 
-model = 'higher_level_gnn'
-# model = 'lower_level_gnn'
-# model = 'lower_level_gmn'
-# model = 'lower_level_gnn_higher_level'
-# model = 'higher_level_init_to_pred'
+model = 'higher_level_gnn'                  # DECAGON
+# model = 'lower_level_gnn'                 # LL-GNN
+# model = 'lower_level_gmn'                 # MHCADDI
+# model = 'lower_level_gnn_higher_level'    # BI-GNN
+# model = 'higher_level_init_to_pred'       # FP-PRED
 
 lower_level_layers = False
 high_level_layers = False
@@ -161,6 +169,7 @@ parser.add_argument('--cross_val', default=cross_val)
 
 if cross_val:
     num_folds = 4
+    # tvt_ratio = [0.3, 0.2, 0.5]
     # tvt_ratio = [0.7, 0.1, 0.2]
     tvt_ratio = [0.7, 0.05, 0.25]
     # tvt_ratio = [0.5, 0.25, 0.25]
@@ -255,7 +264,6 @@ elif high_level_layers:
 parser.add_argument('--init_embds', default=init_embds,
                     choices=['graph_feats', 'rand_init', 'model_init',
                              'ones_init', 'no_init', 'one_hot_init'])
-
 
 assert init_embds == 'model_init' if use_sampled_subgraph else True
 assert lower_level_layers if 'model_init' in init_embds else True
@@ -431,7 +439,6 @@ parser.add_argument('--save_model', type=bool, default=save_model)
 load_model = None
 parser.add_argument('--load_model', default=load_model)
 parser.add_argument('--batch_size', type=int, default=batch_size)
-parser.add_argument('--node_ordering', default='bfs')
 
 """
 Other info.
@@ -445,7 +452,7 @@ FLAGS = parser.parse_args()
 COMET_EXPERIMENT = None
 if FLAGS.use_comet_ml:
     hyper_params = vars(FLAGS)
-    COMET_EXPERIMENT = Experiment(api_key=COMET_ML_APP_KEY,
+    COMET_EXPERIMENT = Experiment(api_key=COMET_ML_API_KEY,
                                   project_name=COMET_PROJECT_NAME,
                                   auto_metric_logging=False)
     COMET_EXPERIMENT.log_parameters(hyper_params)

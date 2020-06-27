@@ -24,18 +24,18 @@ class LinkPred(nn.Module):
             assert self.type == 'ntn' or self.type == 'mlp_concat'
         if self.type == 'mlp_concat':
             if multi_label_pred:
-                dims = self._calc_mlp_dims(mlp_dim * 2, num_labels)
+                dims = self._calc_mlp_dims(mlp_dim * 2, num_labels, division=8)
                 self.mlp_concat = MLP(mlp_dim * 2, num_labels, num_hidden_lyr=len(dims), hidden_channels=dims, bn=False)
             else:
-                dims = self._calc_mlp_dims(mlp_dim * 2)
+                dims = self._calc_mlp_dims(mlp_dim * 2, division=8)
                 self.mlp_concat = MLP(mlp_dim * 2, 1, num_hidden_lyr=len(dims), hidden_channels=dims, bn=False)
 
     @staticmethod
-    def _calc_mlp_dims(mlp_dim, output_dim=1):
+    def _calc_mlp_dims(mlp_dim, output_dim=1, division=2):
         dim = mlp_dim
         dims = []
         while dim > output_dim:
-            dim = dim // 2
+            dim = dim // division
             dims.append(dim)
         dims = dims[:-1]
         return dims
