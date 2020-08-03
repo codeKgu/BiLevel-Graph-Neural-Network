@@ -49,13 +49,17 @@ dataset = 'drugbank'
 parser.add_argument('--random_seed', default=3)
 
 if 'drugcombo' in dataset:
-    parser.add_argument('--hypergraph', default='combo', choices=['synergy',
-                                                                  'combo',
-                                                                  'antagonism'])
+    parser.add_argument('--hypergraph',
+                        default='combo',
+                        choices=['synergy', 'combo', 'antagonism'],
+                        help='what edge type to use in the interaction graph. '
+                             'combo is all edge type combined')
 
 parser.add_argument('--dataset', default=dataset)
 feat_size = 64
-parser.add_argument('--feat_size', default=feat_size, choices=[16, 32, 64, 128, 512, 1024])
+parser.add_argument('--feat_size', default=feat_size,
+                    choices=[16, 32, 64, 128, 512, 1024],
+                    help='feature size for molecular fingerprints')
 
 c = C()
 parser.add_argument('--node_fe_{}'.format(c.c()), default='one_hot')
@@ -77,8 +81,12 @@ assert not (different_edge_type_aggr and use_interaction_edge_attrs)
 
 if 'drugcombo' not in dataset:
     use_interaction_edge_attrs = different_edge_type_aggr = False
-parser.add_argument('--use_hyper_edge_attrs', default=use_interaction_edge_attrs)
-parser.add_argument('--different_edge_type_aggr', default=different_edge_type_aggr)
+parser.add_argument('--use_hyper_edge_attrs', default=use_interaction_edge_attrs,
+                    help='whether to use edge attribtues in the interaction '
+                         'graph as part of message passing')
+parser.add_argument('--different_edge_type_aggr', default=different_edge_type_aggr,
+                    help='aggregate the messages across each edge type in the '
+                         'interaction graph')
 
 
 """
@@ -104,12 +112,23 @@ if 'our_model' in model or 'our_best_model' in model:
 
 node_model = None
 edge_model = None
+
+# CHANGE THIS WHEN INCORPORATING MULTIPLE EDGE TYPES
 if use_interaction_edge_attrs:
-    node_model = 'gat_concat'
-    edge_model = 'mlp_concat'
+    node_model = 'gat_concat'  # choices: gcn_concat, gat_concat, mlp_concat
+    edge_model = 'mlp_concat'  # choices: mlp_concat
 elif different_edge_type_aggr:
     edge_model = 'none'
+    # choices: gat_multi_edge_aggr, gcn_multi_edge_aggr
     node_model = 'gat_multi_edge_aggr'
+
+# OTHERWISE CHANGE THIS FOR DIFFERENT GNN TYPE
+lower_level_gnn_type = 'gat'  # choices: gcn, gat, gin
+higher_level_gnn_type = 'gat'  # choices: gcn, gat, gin
+
+# CHANGE THIS FOR NUMBER OF LL AND HL LAYERS
+lower_level_num_layers = 5 if 'gmn' not in model else 3
+higher_level_num_layers = 3
 
 
 
@@ -159,10 +178,11 @@ parser.add_argument('--save_final_node_embeddings', default=save_final_node_embe
 
 
 batch_size = 128 if 'gmn' in model else 64
-batch_size = batch_size if 'small' not in dataset else 12
+batch_size = batch_size if 'small' not in dataset else 14
 
 
 assert not(dataset == 'ddi_small_drugbank' and batch_size > 20)
+
 
 cross_val = True
 parser.add_argument('--cross_val', default=cross_val)
@@ -214,8 +234,8 @@ parser.add_argument('--model', default=model)
 
 c = C()
 
-D_lower = 64
-D_higher = 64
+D_lower = 64  # dim of lower level gnn
+D_higher = 64  # dim of higher level gnn
 
 # node_aggr = 'sum'
 # node_aggr = 'avg_pool'
@@ -224,7 +244,7 @@ D_higher = 64
 # node_aggr = 'multi_scale'
 # node_aggr = 'combine'
 
-
+# see layers_aggregation for each node_aggr method
 if lower_level_layers and high_level_layers:
     node_aggr = 'multi_scale'
 elif lower_level_layers and not high_level_layers:
@@ -233,14 +253,8 @@ else:
     node_aggr = 'avg_pool'
 style = 'avg_pool'
 
-
-node_embed_layers_num = 5 if 'gmn' not in model else 3
-node_embed_type = 'gat'
-hyper_level_embed_layers_num = 3
-hyper_level_type = 'gat'
 bn = True
-
-# whether the batch contains only 1 graph
+# whether the batch contains unique graphs across the batch
 batch_unique_graphs = False if model == 'lower_level_gmn' else True
 parser.add_argument('--batch_unique_graphs', default=batch_unique_graphs)
 
@@ -259,7 +273,10 @@ if lower_level_layers and high_level_layers:
 elif lower_level_layers:
     init_embds = 'no_init'
 elif high_level_layers:
-    init_embds = 'rand_init'   # ones_init, rand_init, one_hot_init, graph_feats (ECFP fingerprints)
+    # CHANGE THIS FOR DIFFERENT HL INIT
+    # choices: ones_init, rand_init, one_hot_init,
+    # graph_feats (ECFP fingerprints)
+    init_embds = 'rand_init'
 
 parser.add_argument('--init_embds', default=init_embds,
                     choices=['graph_feats', 'rand_init', 'model_init',
@@ -280,15 +297,15 @@ parser.add_argument('--d_init', default=D_init)
 if lower_level_layers and 'gnn' in model:
     n = '--layer_{}'.format(c.c())
     s = 'NodeEmbedding:type={},output_dim={},act=relu,bn={},normalize={}'\
-        .format(node_embed_type, D_lower, bn, gnn_normalize)
+        .format(lower_level_gnn_type, D_lower, bn, gnn_normalize)
     parser.add_argument(n, default=s)
 
-    for i in range(node_embed_layers_num-1):
+    for i in range(lower_level_num_layers-1):
         n = '--layer_{}'.format(c.c())
-        act = 'relu' if i != node_embed_layers_num - 2 else 'identity'
+        act = 'relu' if i != lower_level_num_layers - 2 else 'identity'
         s = 'NodeEmbedding:type={},input_dim={},output_dim={},' \
             'act={},bn={},normalize={}'. \
-            format(node_embed_type, D_lower, D_lower, act, bn, gnn_normalize)
+            format(lower_level_gnn_type, D_lower, D_lower, act, bn, gnn_normalize)
         parser.add_argument(n, default=s)
 
     n = '--layer_{}'.format(c.c())
@@ -303,7 +320,7 @@ if lower_level_layers and 'gnn' in model:
     elif node_aggr == 'multi_scale':
         s = 'NodeAggregation:style={},concat_multi_scale={},' \
             'in_dim={},out_dim={}'.format(style, True, D_lower, D_lower)
-        D_lower = D_lower * node_embed_layers_num
+        D_lower = D_lower * lower_level_num_layers
     else:
         raise NotImplementedError
 
@@ -313,19 +330,19 @@ elif lower_level_layers and 'gmn' in model:
     f_node = 'MLP'
     n = '--layer_{}'.format(c.c())
     s = 'NodeEmbedding:type={},output_dim={},act=relu,bn={},normalize={}'\
-        .format(node_embed_type, D_lower, bn, gnn_normalize)
+        .format(lower_level_gnn_type, D_lower, bn, gnn_normalize)
     parser.add_argument(n, default=s)
 
     n = '--layer_{}'.format(c.c())
     s = 'GMNPropagator:input_dim={},output_dim={},act=relu,bn={},f_node={}'.format(D_lower, D_lower, bn, f_node)
     parser.add_argument(n, default=s)
 
-    for i in range(node_embed_layers_num-1):
+    for i in range(lower_level_num_layers-1):
         n = '--layer_{}'.format(c.c())
-        act = 'relu' if i != node_embed_layers_num - 2 else 'identity'
+        act = 'relu' if i != lower_level_num_layers - 2 else 'identity'
         s = 'NodeEmbedding:type={},input_dim={},output_dim={},' \
             'act={},bn={},normalize={}'. \
-            format(node_embed_type, D_lower, D_lower, act, bn, gnn_normalize)
+            format(lower_level_gnn_type, D_lower, D_lower, act, bn, gnn_normalize)
         parser.add_argument(n, default=s)
 
         n = '--layer_{}'.format(c.c())
@@ -345,7 +362,7 @@ elif lower_level_layers and 'gmn' in model:
     elif node_aggr == 'multi_scale':
         s = 'NodeAggregation:style={},concat_multi_scale={},' \
             'in_dim={},out_dim={}'.format(style, True, D_lower, D_lower)
-        D_lower = D_lower * node_embed_layers_num
+        D_lower = D_lower * lower_level_num_layers
     else:
         raise NotImplementedError
 
@@ -370,7 +387,7 @@ if high_level_layers:
             else:
                 s = 'NodeEmbedding:type={},output_dim={},act=relu,bn={},' \
                     'higher_level={},normalize={}'.format(
-                    hyper_level_type, D_higher, bn, True, gnn_normalize)
+                    higher_level_gnn_type, D_higher, bn, True, gnn_normalize)
         else:
             if use_interaction_edge_attrs or different_edge_type_aggr:
                 s = 'MetaLayer:input_dim={},output_dim={},act=relu,' \
@@ -379,14 +396,14 @@ if high_level_layers:
             else:
                 s = 'NodeEmbedding:type={},input_dim={},output_dim={},' \
                     'act=relu,bn={},higher_level={},normalize={}'.format(
-                    hyper_level_type, D_lower, D_higher, bn, True, gnn_normalize)
+                    higher_level_gnn_type, D_lower, D_higher, bn, True, gnn_normalize)
 
         parser.add_argument(n, default=s)
-        hyper_level_embed_layers_num -= 1
+        higher_level_num_layers -= 1
 
-        for i in range(hyper_level_embed_layers_num):
+        for i in range(higher_level_num_layers):
             n = '--layer_{}'.format(c.c())
-            act = 'relu' if i != hyper_level_embed_layers_num - 1 else 'identity'
+            act = 'relu' if i != higher_level_num_layers - 1 else 'identity'
             if use_interaction_edge_attrs or different_edge_type_aggr:
                 s = 'MetaLayer:input_dim={},output_dim={},act={},' \
                     'higher_level={},edge_model={},node_model={}'.format(
@@ -394,7 +411,7 @@ if high_level_layers:
             else:
                 s = 'NodeEmbedding:type={},input_dim={},output_dim={},' \
                     'act={},bn={},higher_level={},normalize={}'. \
-                    format(hyper_level_type, D_higher, D_higher, act, bn, True, gnn_normalize)
+                    format(higher_level_gnn_type, D_higher, D_higher, act, bn, True, gnn_normalize)
             parser.add_argument(n, default=s)
 
 if not high_level_layers:
