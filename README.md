@@ -8,7 +8,7 @@ For details please refer to the our paper
 > Bi-Level Graph Neural Networks for Drug-Drug Interaction Prediction.
 > Yunsheng Bai*, Ken Gu*, Yizhou Sun, Wei Wang.
 > ICML 2020 Graph Representation Learning and Beyond (GRL+) Workshop
-[\[Paper\]](https://128.84.21.199/abs/2006.14002) [\[Workshop\]](https://grlplus.github.io/).
+[\[Paper\]](https://arxiv.org/pdf/2006.14002.pdf) [\[Workshop\]](https://grlplus.github.io/).
 
 ## Model
 ![DDI image](./data/Images/DDI.jpg)  
